@@ -3,6 +3,8 @@ import json
 import urllib3
 from typing import List, Dict, Any, Optional
 
+from db_manager import save_weather_data
+
 # 停用 SSL 警告 (部分 Windows 環境對 CWA 憑證跳出警告)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -57,7 +59,7 @@ def parse_weather_data(json_data: Optional[dict]) -> List[Dict[str, Any]]:
     
     轉換為 List[Dict] 結構，範例:
     [
-        {"regionName": "臺北市", "dataDate": "2026-09-23 18:00:00", "minT": 25, "maxT": 30, "wx": "多雲短暫陣雨"},
+        {"regionName": "臺北市", "dataDate": "2026-09-23 18:00:00", "minT": 25, "maxT": 30, "weather": "多雲短暫陣雨"},
         ...
     ]
 
@@ -76,7 +78,7 @@ def parse_weather_data(json_data: Optional[dict]) -> List[Dict[str, Any]]:
         location_name = loc.get("locationName", "未知地點")
         min_t = None
         max_t = None
-        wx = None
+        weather = None
         data_date = None
 
         weather_elements = loc.get("weatherElement", [])
@@ -85,40 +87,32 @@ def parse_weather_data(json_data: Optional[dict]) -> List[Dict[str, Any]]:
             time_slots = elem.get("time", [])
 
             if time_slots:
-                # 提取第一筆時間區段
                 first_slot = time_slots[0]
                 
-                # 若尚未設定 dataDate，使用第一筆時間區段的 startTime
                 if not data_date:
                     data_date = first_slot.get("startTime")
 
                 param_name = first_slot.get("parameter", {}).get("parameterName")
 
-                # 解析最低溫
                 if elem_name == "MinT":
                     try:
                         min_t = int(param_name)
                     except (ValueError, TypeError):
                         min_t = param_name
-                
-                # 解析最高溫
                 elif elem_name == "MaxT":
                     try:
                         max_t = int(param_name)
                     except (ValueError, TypeError):
                         max_t = param_name
-
-                # (可選) 解析天氣現象描述
                 elif elem_name == "Wx":
-                    wx = param_name
+                    weather = param_name
 
-        # 組合成地點 Dictionary
         item = {
             "regionName": location_name,
             "dataDate": data_date,
             "minT": min_t,
             "maxT": max_t,
-            "wx": wx
+            "weather": weather
         }
         parsed_list.append(item)
 
@@ -127,7 +121,7 @@ def parse_weather_data(json_data: Optional[dict]) -> List[Dict[str, Any]]:
 
 # 測試執行區塊
 if __name__ == "__main__":
-    print("=== 開始測試 CWA API 請求與資料解析 ===")
+    print("=== 開始測試 CWA API 請求與資料解析並寫入 SQLite ===")
     
     # 1. 發送 GET 請求取得原生 JSON
     raw_json = fetch_weather_data()
@@ -135,13 +129,11 @@ if __name__ == "__main__":
     if raw_json:
         # 2. 解析 JSON 資料結構
         parsed_data = parse_weather_data(raw_json)
-        
         print(f"\n[SUCCESS] 成功解析 {len(parsed_data)} 個縣市的天氣預報資料！\n")
-        print("=== 解析後的資料結構 (前 5 筆地點範例 List[Dict]) ===")
-        print(json.dumps(parsed_data[:5], ensure_ascii=False, indent=2))
         
-        print("\n=== 所有地點快速檢視 ===")
-        for item in parsed_data:
-            print(f"[地點] {item['regionName']} | [時間] {item['dataDate']} | [氣溫] {item['minT']}°C ~ {item['maxT']}°C | [天況] {item['wx']}")
+        # 3. 寫入 SQLite 資料庫 (data.db)
+        save_weather_data(parsed_data)
+        
+        print("\n資料已成功儲存至 SQLite 資料庫")
     else:
         print("\n[NOTE] 無法取得資料，請檢查 API Key 是否正確。")
