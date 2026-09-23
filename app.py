@@ -65,7 +65,7 @@ def load_weather_data() -> pd.DataFrame:
     try:
         df = pd.read_sql_query("SELECT * FROM TemperatureForecasts", conn)
         if not df.empty and 'regionName' in df.columns:
-            # 去除地名首尾可能的多餘空白
+            # 去除地名首尾多餘空白
             df['regionName'] = df['regionName'].astype(str).str.strip()
     except Exception as e:
         st.error(f"讀取資料庫失敗: {e}")
@@ -86,21 +86,21 @@ else:
     st.sidebar.header("📍 選擇地區")
     unique_regions = sorted(df['regionName'].drop_duplicates().tolist())
     
-    # 設定 key="selected_region_sb" 確保元件狀態穩定不失焦
+    # 設定 key="selected_region_sb" 確保選單元件狀態穩定
     selected_region = st.sidebar.selectbox(
         "請選擇要觀看的地區 (regionName):",
         options=unique_regions,
         key="selected_region_sb"
     )
 
-    # 2. 核心修正：嚴格使用 selected_region 篩選出該地區的 filtered_df
+    # 2. 精準使用 selected_region 變數進行動態篩選
     filtered_df = df[df['regionName'] == selected_region].reset_index(drop=True)
 
-    # 3. 主畫面動態標題與 Metrics 指標 (使用 f-string 動態顯示選中地區)
+    # 3. 主畫面動態標題與 Metrics 指標 (使用 f-string 動態綁定 selected_region)
     if not filtered_df.empty:
         current_data = filtered_df.iloc[0]
 
-        # 動態標題
+        # 完全動態標題 (使用 f-string)
         st.subheader(f"📌 {selected_region} 當前氣象指標")
 
         # 指標卡片 (st.metric)
@@ -126,8 +126,8 @@ else:
 
         st.markdown("---")
 
-        # 4. 詳細預報資料表格 (使用 filtered_df 動態呈現選中地區的資料)
-        st.subheader(f"📋 {selected_region} 詳細預報資料表格")
+        # 4. 詳細預報資料表格動態標題與表格 (完全動態綁定 selected_region)
+        st.subheader(f"📋 {selected_region} 詳細資料表格")
         st.dataframe(
             filtered_df[['id', 'regionName', 'dataDate', 'minT', 'maxT', 'weather']],
             use_container_width=True,
@@ -149,10 +149,10 @@ else:
         map_center = [23.7, 120.95]
         zoom_level = 7.5
 
-    # 建立 Folium 地圖物件 (使用 OpenStreetMap 基礎底圖)
+    # 建立 Folium 地圖物件
     m = folium.Map(location=map_center, zoom_start=zoom_level, tiles="OpenStreetMap")
 
-    # 遍歷原始完整的 df (包含所有縣市圖釘)
+    # 遍歷原始完整的 df (包含全台所有縣市圖釘)
     for _, row in df.iterrows():
         region_name = str(row.get('regionName', '')).strip()
         weather = row.get('weather', '未知')
@@ -162,7 +162,7 @@ else:
         if region_name in CITY_COORDS:
             coords = CITY_COORDS[region_name]
 
-            # 依要求設定 Popup 格式: "<b>{地區名稱}</b><br>天氣: {天氣}<br>氣溫: {最低溫}°C - {最高溫}°C"
+            # 依要求設定 Popup 格式
             popup_html = f"<b>{region_name}</b><br>天氣: {weather}<br>氣溫: {min_t}°C - {max_t}°C"
             
             # 側邊欄選中的地區使用紅色標籤提示，其餘為藍色
@@ -175,8 +175,14 @@ else:
                 icon=folium.Icon(color=icon_color, icon="info-sign")
             ).add_to(m)
 
-    # 渲染 Folium 地圖 (傳入 returned_objects=[] 避免地圖操作引發全頁失步)
-    st_folium(m, width=900, height=500, returned_objects=[], key="folium_map")
+    # 渲染 Folium 地圖 (使用 key=f"map_{selected_region}" 確保切換地區時地圖組件同步強制重繪)
+    st_folium(
+        m,
+        width=900,
+        height=500,
+        returned_objects=[],
+        key=f"map_{selected_region}"
+    )
 
 # 頁尾資訊
 st.sidebar.markdown("---")
