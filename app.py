@@ -64,6 +64,9 @@ def load_weather_data() -> pd.DataFrame:
     conn = sqlite3.connect(db_path)
     try:
         df = pd.read_sql_query("SELECT * FROM TemperatureForecasts", conn)
+        if not df.empty and 'regionName' in df.columns:
+            # 去除地名首尾可能的多餘空白
+            df['regionName'] = df['regionName'].astype(str).str.strip()
     except Exception as e:
         st.error(f"讀取資料庫失敗: {e}")
         df = pd.DataFrame()
@@ -73,33 +76,34 @@ def load_weather_data() -> pd.DataFrame:
     return df
 
 
-# 載入資料
+# 載入原始完整 DataFrame (df)
 df = load_weather_data()
 
 if df.empty:
     st.warning("⚠️ 目前資料庫無資料，請確認 API Key 或資料庫設定。")
 else:
-    # 建立互動元件與版面 (Steps 13-16)
-
     # 1. 側邊欄 (st.sidebar) - 動態產生地區下拉選單 (過濾重複地點)
     st.sidebar.header("📍 選擇地區")
-    unique_regions = df['regionName'].drop_duplicates().tolist()
+    unique_regions = sorted(df['regionName'].drop_duplicates().tolist())
     
+    # 設定 key="selected_region_sb" 確保元件狀態穩定不失焦
     selected_region = st.sidebar.selectbox(
         "請選擇要觀看的地區 (regionName):",
-        options=unique_regions
+        options=unique_regions,
+        key="selected_region_sb"
     )
 
-    # 2. 根據使用者選擇的地區篩選 DataFrame (用於指標與下方表格)
+    # 2. 核心修正：嚴格使用 selected_region 篩選出該地區的 filtered_df
     filtered_df = df[df['regionName'] == selected_region].reset_index(drop=True)
 
+    # 3. 主畫面動態標題與 Metrics 指標 (使用 f-string 動態顯示選中地區)
     if not filtered_df.empty:
-        # 取得最新一筆天氣預報數據
         current_data = filtered_df.iloc[0]
 
+        # 動態標題
         st.subheader(f"📌 {selected_region} 當前氣象指標")
 
-        # 3. 主畫面顯示地區當前 weather、maxT、minT (使用 st.metric)
+        # 指標卡片 (st.metric)
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -122,12 +126,22 @@ else:
 
         st.markdown("---")
 
+        # 4. 詳細預報資料表格 (使用 filtered_df 動態呈現選中地區的資料)
+        st.subheader(f"📋 {selected_region} 詳細預報資料表格")
+        st.dataframe(
+            filtered_df[['id', 'regionName', 'dataDate', 'minT', 'maxT', 'weather']],
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.markdown("---")
+
     # ==========================================
     # 地圖視覺化 (Steps 17, 18) — Folium 全台地圖與圖釘
     # ==========================================
     st.subheader("🗺️ 台灣全區互動式氣象地圖 (Folium Map)")
 
-    # 4. (進階互動 - Step 18): 依據選擇的地區設定地圖中心點與縮放層級
+    # 當使用者選擇某縣市時，讓地圖自動移位焦點 (Step 18)
     if selected_region in CITY_COORDS:
         map_center = CITY_COORDS[selected_region]
         zoom_level = 10
@@ -135,17 +149,16 @@ else:
         map_center = [23.7, 120.95]
         zoom_level = 7.5
 
-    # 建立 Folium 地圖物件
+    # 建立 Folium 地圖物件 (使用 OpenStreetMap 基礎底圖)
     m = folium.Map(location=map_center, zoom_start=zoom_level, tiles="OpenStreetMap")
 
-    # 5. 正確的圖釘與 Popup: 使用 for 迴圈遍歷完整的 DataFrame (包含所有縣市，不受側邊欄篩選影響)
+    # 遍歷原始完整的 df (包含所有縣市圖釘)
     for _, row in df.iterrows():
-        region_name = row.get('regionName')
+        region_name = str(row.get('regionName', '')).strip()
         weather = row.get('weather', '未知')
         min_t = row.get('minT', 'N/A')
         max_t = row.get('maxT', 'N/A')
 
-        # 從經緯度字典中抓出對應座標
         if region_name in CITY_COORDS:
             coords = CITY_COORDS[region_name]
 
@@ -162,18 +175,8 @@ else:
                 icon=folium.Icon(color=icon_color, icon="info-sign")
             ).add_to(m)
 
-    # 在 Streamlit 中渲染 Folium 地圖
-    st_folium(m, width=900, height=500)
-
-    st.markdown("---")
-
-    # 6. 主畫面下方顯示詳細預報資料表格 (st.dataframe)
-    st.subheader(f"📋 {selected_region} 詳細預報資料表格")
-    st.dataframe(
-        filtered_df[['id', 'regionName', 'dataDate', 'minT', 'maxT', 'weather']],
-        use_container_width=True,
-        hide_index=True
-    )
+    # 渲染 Folium 地圖 (傳入 returned_objects=[] 避免地圖操作引發全頁失步)
+    st_folium(m, width=900, height=500, returned_objects=[], key="folium_map")
 
 # 頁尾資訊
 st.sidebar.markdown("---")
