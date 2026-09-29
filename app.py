@@ -73,7 +73,7 @@ else:
 
     # 👇 請在這裡新增以下這段「進階功能選單」：
     st.sidebar.markdown("---")
-    st.sidebar.header("🛠️ 進階資訊切換")
+    st.sidebar.header("🛠️ 更多資訊")
     
     # 建立三個勾選框
     show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=False)
