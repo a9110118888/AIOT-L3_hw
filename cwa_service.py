@@ -126,31 +126,31 @@ def fetch_uvi_data():
     return uvi_dict
 
 def fetch_aqi_data():
-    """跨部會串接：環境部 AQI 空氣品質指標 (強固防呆版)"""
-    # 改用環境部公開且穩定的 AQI 資料集網址
-    url = "https://data.moenv.gov.tw/api/v2/aqx_p_432?api_key=e8dd42e6-9b8b-43f8-991e-b3dee723a52d&limit=1000&format=JSON"
+    """跨部會串接：環境部 AQI 空氣品質指標 (直連穩定版)"""
+    # 這是環境部最穩定、公開免密碼的 AQI 即時資料 JSON 連結
+    url = "https://data.moenv.gov.tw/gis/rest/services/WMS/AQX_P_432/MapServer/0/query?where=1%3D1&outFields=*&f=json"
     aqi_dict = {}
     try:
         res = requests.get(url, verify=False)
         res.raise_for_status()
         data = res.json()
         
-        # 印出前幾筆資料來幫助檢查結構
-        records = data.get('records', [])
-        for rec in records:
-            # 支援所有可能的鍵值大小寫與拼寫
-            county = rec.get('County') or rec.get('county') or rec.get('COUNTY') or '未知'
-            aqi_val = rec.get('AQI') or rec.get('aqi') or rec.get('aqi_value')
+        # 穩定版結構：features 陣列裡面的 attributes
+        features = data.get('features', [])
+        for feat in features:
+            attrs = feat.get('attributes', {})
+            county = attrs.get('COUNTY', attrs.get('County', '未知'))
+            aqi_val = attrs.get('AQI', attrs.get('aqi'))
             
             if county != '未知' and aqi_val is not None:
-                county = county.replace('台', '臺').strip()
+                county = str(county).replace('台', '臺').strip()
                 try:
                     current_aqi = float(aqi_val)
                     if county not in aqi_dict or current_aqi > aqi_dict[county]:
                         aqi_dict[county] = current_aqi
                 except:
                     pass
-        print(f"[SUCCESS] 成功載入 {len(aqi_dict)} 筆 AQI 空汙資料！")
+        print(f"[SUCCESS] 成功從環境部 GIS 載入 {len(aqi_dict)} 筆 AQI 資料！")
     except Exception as e:
         print(f"AQI 取得失敗: {e}")
         
