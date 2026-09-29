@@ -125,11 +125,7 @@ else:
         
         st.altair_chart(line_chart, use_container_width=True)
         st.markdown("---")
-        
-        st.subheader(f"📋 {selected_region} 詳細資料表格")
-        display_df = filtered_df[['regionName', 'dataDate', 'pop', 'minT', 'maxT', 'weather']].copy()
-        display_df['dataDate'] = pd.to_datetime(display_df['dataDate']).dt.strftime('%m/%d %H:%M')
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
 
     # ... (下方保留原本的 Folium 地圖渲染程式碼)
 
