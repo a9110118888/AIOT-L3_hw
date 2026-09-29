@@ -88,3 +88,38 @@ def parse_weather_data(json_data):
         print(f"解析 JSON 發生錯誤: {e}")
         
     return parsed_data
+
+# --- 在 cwa_service.py 最下方新增這段 ---
+
+def fetch_uvi_data():
+    """抓取 O-A0005-001 紫外線觀測資料"""
+    url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0005-001?Authorization={API_KEY}&format=JSON"
+    uvi_dict = {}
+    try:
+        res = requests.get(url, verify=False)
+        res.raise_for_status()
+        data = res.json()
+        
+        # 解析紫外線觀測資料結構
+        locations = data.get('records', {}).get('weatherElement', {}).get('location', [])
+        for loc in locations:
+            uvi_val = loc.get('value', 0)
+            county = "未知"
+            for p in loc.get('parameter', []):
+                if p.get('parameterName') == 'COUNTYNAME':
+                    county = p.get('parameterValue')
+                    break
+            
+            # 若同一縣市有多個測站，保留最高數值
+            if county != "未知":
+                county = county.replace('台', '臺') # 統一寫法
+                try:
+                    current_val = float(uvi_val)
+                    if county not in uvi_dict or current_val > uvi_dict[county]:
+                        uvi_dict[county] = current_val
+                except:
+                    pass
+    except Exception as e:
+        print(f"UVI 取得失敗: {e}")
+        
+    return uvi_dict
