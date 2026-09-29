@@ -87,9 +87,13 @@ else:
         
         st.markdown("---")
 
-        # 這裡就是您最期待的 3 小時氣溫折線圖！
+       # 這裡就是您最期待的 3 小時氣溫折線圖！
         st.subheader(f"📈 {selected_region} 未來氣溫趨勢圖 (每3小時)")
         chart_data = filtered_df[['dataDate', 'maxT', 'minT']].copy()
+        
+        # 🌟 關鍵美化 1：把落落長的時間轉換成易讀的格式 (例如 09/29 12:00)
+        chart_data['dataDate'] = pd.to_datetime(chart_data['dataDate']).dt.strftime('%m/%d %H:%M')
+        
         chart_data = chart_data.rename(columns={'maxT': '實際溫度', 'minT': '體感溫度', 'dataDate': '日期與時間'})
         chart_data = chart_data.melt(id_vars=['日期與時間'], value_vars=['實際溫度', '體感溫度'], var_name='溫度類型', value_name='溫度 (°C)')
         
