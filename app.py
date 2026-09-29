@@ -96,7 +96,6 @@ else:
     st.sidebar.markdown("---")
     st.sidebar.header("🛠️ 更多資訊")
     show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=True)
-    show_uvi = st.sidebar.checkbox("☀️ 顯示紫外線 (UVI) 於地圖", value=False)
 
     filtered_df = df[df['regionName'] == selected_region].reset_index(drop=True)
 
@@ -171,21 +170,49 @@ else:
 
         if region_name in CITY_COORDS:
             coords = CITY_COORDS[region_name]
-            popup_html = f"<b>{region_name}</b><br>天氣: {weather}<br>實際: {max_t}°C<br>體感: {min_t}°C"
+            uvi_val = uvi_dict.get(region_name, "N/A")
             
-            # 🌟 關鍵邏輯：如果左側有勾選，就把紫外線加到地圖彈出視窗中！
-            if show_uvi:
-                uvi_val = uvi_dict.get(region_name, "目前無觀測資料")
-                popup_html += f"<hr style='margin:5px 0;'>☀️ 紫外線 (UVI): <b>{uvi_val}</b>"
-            
+            popup_html = f"<b>{region_name}</b><br>天氣: {weather}<br>實際: {max_t}°C<br>體感: {min_t}°C<br>☀️ 紫外線: {uvi_val}"
             icon_color = "red" if region_name == st.session_state.current_region else "blue"
 
+            # 1. 畫出原本的互動圖釘
             folium.Marker(
                 location=coords,
                 popup=folium.Popup(popup_html, max_width=250),
                 tooltip=region_name,
                 icon=folium.Icon(color=icon_color, icon="info-sign")
             ).add_to(m)
+
+            # 2. 🌟 魔法徽章：直接把紫外線數值畫在地圖上！
+            if uvi_val != "N/A":
+                # 依據紫外線強度設定顏色 (對標氣象署標準)
+                bg_color = "#2e7d32" # 綠色 (低量級)
+                if uvi_val >= 11: bg_color = "#9c27b0" # 紫色 (危險級)
+                elif uvi_val >= 8: bg_color = "#d32f2f" # 紅色 (過量級)
+                elif uvi_val >= 6: bg_color = "#f57c00" # 橘色 (高量級)
+                elif uvi_val >= 3: bg_color = "#fbc02d" # 黃色 (中量級)
+
+                html_badge = f"""
+                <div style="
+                    background-color: {bg_color};
+                    color: white;
+                    border-radius: 50%;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-weight: bold;
+                    font-size: 13px;
+                    border: 2px solid white;
+                    box-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+                    transform: translate(12px, -15px); /* 往右上方偏移，與圖釘完美貼合 */
+                ">{int(uvi_val)}</div>
+                """
+                folium.Marker(
+                    location=coords,
+                    icon=folium.DivIcon(html=html_badge)
+                ).add_to(m)
 
     map_data = st_folium(
         m, 
