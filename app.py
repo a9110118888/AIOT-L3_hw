@@ -67,23 +67,34 @@ df = load_weather_data()
 if df.empty:
     st.warning("⚠️ 目前資料庫無資料，請確認 API Key 是否設定正確。")
 else:
+    st.sidebar.header("📍 選擇地區")
     unique_regions = sorted(df['regionName'].drop_duplicates().tolist())
     
-    # 🌟 關鍵修改 1：初始化記憶，並將下拉選單綁定 key="selected_region"
-    if 'selected_region' not in st.session_state:
-        st.session_state.selected_region = unique_regions[0]
+    # 🌟 修正 1：改用 'current_region' 獨立記憶，避免與元件本身發生衝突
+    if 'current_region' not in st.session_state:
+        st.session_state.current_region = unique_regions[0]
         
-    st.sidebar.header("📍 選擇地區")
-    selected_region = st.sidebar.selectbox(
+    # 找出目前記憶的縣市，在清單中排第幾個 (用來設定下拉選單的預設值)
+    default_index = unique_regions.index(st.session_state.current_region) if st.session_state.current_region in unique_regions else 0
+        
+    # 🌟 修正 2：拔除 key，改用 index 來控制預設顯示的縣市
+    selected_region_input = st.sidebar.selectbox(
         "請選擇要觀看的地區:", 
         options=unique_regions, 
-        key="selected_region"  # 綁定記憶！
+        index=default_index
     )
 
-    # 🌟 新增：進階資訊切換開關
+    # 🌟 修正 3：若使用者手動從左側選單挑選，則更新記憶並重整
+    if selected_region_input != st.session_state.current_region:
+        st.session_state.current_region = selected_region_input
+        st.rerun()
+
+    # 將記憶中的縣市指定給 selected_region，讓下方畫圖表的程式碼能無縫接軌
+    selected_region = st.session_state.current_region
+
     st.sidebar.markdown("---")
     st.sidebar.header("🛠️ 更多資訊")
-    show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=True) # 預設開啟
+    show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=True)
 
     filtered_df = df[df['regionName'] == selected_region].reset_index(drop=True)
 
