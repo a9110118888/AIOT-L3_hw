@@ -126,30 +126,31 @@ def fetch_uvi_data():
     return uvi_dict
 
 def fetch_aqi_data():
-    """跨部會串接：環境部 AQI 空氣品質指標 (萬能容錯解析版)"""
-    url = "https://data.moenv.gov.tw/api/v2/aqx_p_432?api_key=e8dd42e6-9b8b-43f8-991e-b3dee723a52d&limit=1000&sort=ImportDate%20desc&format=JSON"
+    """跨部會串接：環境部 AQI 空氣品質指標 (強固防呆版)"""
+    # 改用環境部公開且穩定的 AQI 資料集網址
+    url = "https://data.moenv.gov.tw/api/v2/aqx_p_432?api_key=e8dd42e6-9b8b-43f8-991e-b3dee723a52d&limit=1000&format=JSON"
     aqi_dict = {}
     try:
         res = requests.get(url, verify=False)
         res.raise_for_status()
         data = res.json()
         
+        # 印出前幾筆資料來幫助檢查結構
         records = data.get('records', [])
         for rec in records:
-            # 兼容大小寫與不同欄位名稱
-            county = rec.get('County', rec.get('county', '未知'))
-            aqi_str = str(rec.get('AQI', rec.get('aqi', '')))
+            # 支援所有可能的鍵值大小寫與拼寫
+            county = rec.get('County') or rec.get('county') or rec.get('COUNTY') or '未知'
+            aqi_val = rec.get('AQI') or rec.get('aqi') or rec.get('aqi_value')
             
-            if county != '未知' and aqi_str and aqi_str != 'None':
-                county = county.replace('台', '臺').strip() # 統一縣市寫法
-                
-                # 有時候 AQI 帶有小數點或空白，轉成數字
+            if county != '未知' and aqi_val is not None:
+                county = county.replace('台', '臺').strip()
                 try:
-                    current_aqi = float(aqi_str)
+                    current_aqi = float(aqi_val)
                     if county not in aqi_dict or current_aqi > aqi_dict[county]:
                         aqi_dict[county] = current_aqi
                 except:
                     pass
+        print(f"[SUCCESS] 成功載入 {len(aqi_dict)} 筆 AQI 空汙資料！")
     except Exception as e:
         print(f"AQI 取得失敗: {e}")
         
