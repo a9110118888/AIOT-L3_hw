@@ -221,14 +221,45 @@ else:
                 </div>"""
                 folium.Marker(location=coords, icon=folium.DivIcon(html=html_aqi)).add_to(m)
 
-    map_data = st_folium(
-        m, 
-        width=900, 
-        height=500, 
-        returned_objects=["last_clicked"], 
-        key="map_widget"
-    )
-    
+    # 🌟 關鍵優化：將畫面切割為左右兩欄 (地圖佔 7 成，說明面板佔 3 成)
+    map_col, info_col = st.columns([7, 3])
+
+    with map_col:
+        map_data = st_folium(
+            m, 
+            width=750, 
+            height=520, 
+            returned_objects=["last_clicked"], 
+            key="map_widget"
+        )
+        
+    with info_col:
+        st.markdown("### 💡 地圖操作與指標說明")
+        
+        with st.container(border=True):
+            st.markdown("#### 🖱️ 互動功能")
+            st.markdown("• **點擊圖釘**：直接切換上方檢視的縣市。")
+            st.markdown("• **紅色圖釘**：目前選取中的地區。")
+            st.markdown("• **藍色圖釘**：其他可切換的地區。")
+
+        with st.container(border=True):
+            st.markdown("#### ☀️ 紫外線 (UVI) 指標")
+            st.markdown("顯示於圖釘 **右側圓形徽章**：")
+            st.markdown("🟢 **0-2 綠色** (低量級)")
+            st.markdown("🟡 **3-5 黃色** (中量級)")
+            st.markdown("🟠 **6-7 橘色** (高量級)")
+            st.markdown("🔴 **8-10 紅色** (過量級)")
+            st.markdown("🟣 **11+ 紫色** (危險級)")
+
+        with st.container(border=True):
+            st.markdown("#### 😷 空氣品質 (AQI) 指標")
+            st.markdown("顯示於圖釘 **左側方形徽章**：")
+            st.markdown("🟢 **0-50 綠色** (良好)")
+            st.markdown("🟡 **51-100 黃色** (普通)")
+            st.markdown("🟠 **101-150 橘色** (對敏感族群不健康)")
+            st.markdown("🔴 **150+ 紅/紫** (對所有族群不健康)")
+
+    # 點擊地圖後的互動邏輯
     if map_data and map_data.get("last_clicked"):
         clicked_lat = map_data["last_clicked"]["lat"]
         clicked_lng = map_data["last_clicked"]["lng"]
