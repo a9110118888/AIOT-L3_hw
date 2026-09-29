@@ -7,6 +7,7 @@ import altair as alt
 import datetime
 from db_manager import init_db
 from cwa_service import fetch_weather_data, parse_weather_data
+from cwa_service import fetch_weather_data, parse_weather_data, fetch_uvi_data
 
 # 台灣各縣市近似經緯度字典
 CITY_COORDS = {
@@ -95,6 +96,7 @@ else:
     st.sidebar.markdown("---")
     st.sidebar.header("🛠️ 更多資訊")
     show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=True)
+    show_uvi = st.sidebar.checkbox("☀️ 顯示紫外線 (UVI) 於地圖", value=False)
 
     filtered_df = df[df['regionName'] == selected_region].reset_index(drop=True)
 
@@ -150,6 +152,12 @@ else:
     # ... (下方保留原本的 Folium 地圖渲染程式碼)
     st.subheader("🗺️ 台灣全區互動式氣象地圖")
 
+    # 🌟 載入紫外線資料 (快取 1 小時)
+    @st.cache_data(ttl=3600)
+    def get_uvi():
+        return fetch_uvi_data()
+    uvi_dict = get_uvi()
+
     map_center = CITY_COORDS.get(selected_region, [23.7, 120.95])
     zoom_level = 10 if selected_region in CITY_COORDS else 7.5
 
@@ -164,7 +172,13 @@ else:
         if region_name in CITY_COORDS:
             coords = CITY_COORDS[region_name]
             popup_html = f"<b>{region_name}</b><br>天氣: {weather}<br>實際: {max_t}°C<br>體感: {min_t}°C"
-            icon_color = "red" if region_name == selected_region else "blue"
+            
+            # 🌟 關鍵邏輯：如果左側有勾選，就把紫外線加到地圖彈出視窗中！
+            if show_uvi:
+                uvi_val = uvi_dict.get(region_name, "目前無觀測資料")
+                popup_html += f"<hr style='margin:5px 0;'>☀️ 紫外線 (UVI): <b>{uvi_val}</b>"
+            
+            icon_color = "red" if region_name == st.session_state.current_region else "blue"
 
             folium.Marker(
                 location=coords,
@@ -173,7 +187,6 @@ else:
                 icon=folium.Icon(color=icon_color, icon="info-sign")
             ).add_to(m)
 
-    # 🌟 關鍵修改 1：改為捕捉 'last_clicked' (經緯度座標)
     map_data = st_folium(
         m, 
         width=900, 
@@ -182,12 +195,10 @@ else:
         key="map_widget"
     )
     
-    # 🌟 關鍵修改 2：透過點擊的經緯度，反查最近的縣市名稱
     if map_data and map_data.get("last_clicked"):
         clicked_lat = map_data["last_clicked"]["lat"]
         clicked_lng = map_data["last_clicked"]["lng"]
         
-       # 尋找距離點擊位置最近的縣市
         closest_region = None
         min_distance = float('inf')
         
@@ -197,7 +208,6 @@ else:
                 min_distance = dist
                 closest_region = region
                 
-        # 🌟 修正 4：這裡也要改為更新 'current_region' 獨立記憶
         if closest_region and closest_region != st.session_state.current_region:
             st.session_state.current_region = closest_region
-            st.rerun() 
+            st.rerun()
