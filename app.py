@@ -106,6 +106,13 @@ else:
         
         st.altair_chart(line_chart, use_container_width=True)
         st.markdown("---")
+    st.subheader(f"📋 {selected_region} 詳細資料表格")
+        
+        # 🌟 關鍵美化 2：連同下方詳細表格的時間也一起美化！
+        display_df = filtered_df[['regionName', 'dataDate', 'minT', 'maxT', 'weather']].copy()
+        display_df['dataDate'] = pd.to_datetime(display_df['dataDate']).dt.strftime('%m/%d %H:%M')
+        
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
 
     st.subheader("🗺️ 台灣全區互動式氣象地圖")
 
