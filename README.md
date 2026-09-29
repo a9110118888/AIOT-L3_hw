@@ -1,5 +1,17 @@
 # ⛅ 台灣天氣預報互動應用系統 (Taiwan Weather Forecast Dashboard)
 
+# ⛅ Taiwan Weather Dashboard (台灣即時氣象儀表板)
+
+[![Open in Streamlit]([https://static.streamlit.io/badges/streamlit_badge_black_white.svg](https://aiot-l3hw-kmjjgzqzpv8nfqdw2uyfgb.streamlit.app/))](請把您的網址貼在這裡)
+
+這是我在「個人即時氣象網站製作」專案中所開發的即時氣象儀表板。
+
+## 🌟 專案亮點
+* **即時更新**：介接中央氣象署 (CWA) F-D0047-089 API，自動抓取全台 22 縣市最新氣象資料。
+* **智慧快取**：結合 SQLite 與 Streamlit `@st.cache_data` (3小時 TTL)，網頁載入極速且不浪費 API 資源。
+* **資料視覺化**：使用 Altair 繪製 3 小時區間的實際溫度與體感溫度折線圖。
+* **互動地圖**：整合 Folium 互動式地圖，直觀顯示全台氣象概況。
+
 > **AI 創新微課程專案** | **CWA API × JSON × Python × SQLite × Streamlit × Folium**  
 > *Code Smarter, Build a Better Tomorrow! 用程式探索天氣，用資料看見台灣，用 AI 實現更多可能！*
 
