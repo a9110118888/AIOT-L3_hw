@@ -35,8 +35,8 @@ def safe_save_to_db(data_list):
     if not data_list: return
     conn = sqlite3.connect("data.db")
     df = pd.DataFrame(data_list)
-    conn.execute("DELETE FROM TemperatureForecasts")
-    df.to_sql("TemperatureForecasts", conn, if_exists="append", index=False)
+    conn.execute("DROP TABLE IF EXISTS TemperatureForecasts") # 🌟 關鍵修改：刪除舊表重建
+    df.to_sql("TemperatureForecasts", conn, if_exists="replace", index=False)
     conn.commit()
     conn.close()
 
@@ -71,14 +71,10 @@ else:
     unique_regions = sorted(df['regionName'].drop_duplicates().tolist())
     selected_region = st.sidebar.selectbox("請選擇要觀看的地區:", options=unique_regions)
 
-    # 👇 請在這裡新增以下這段「進階功能選單」：
+    # 🌟 新增：進階資訊切換開關
     st.sidebar.markdown("---")
-    st.sidebar.header("🛠️ 更多資訊")
-    
-    # 建立三個勾選框
-    show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=False)
-    show_uvi = st.sidebar.checkbox("☀️ 顯示紫外線 (UVI)", value=False)
-    show_aqi = st.sidebar.checkbox("😷 顯示空汙警報 (AQI)", value=False)
+    st.sidebar.header("🛠️ 進階資訊切換")
+    show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=True) # 預設開啟
 
     filtered_df = df[df['regionName'] == selected_region].reset_index(drop=True)
 
@@ -86,21 +82,35 @@ else:
         current_data = filtered_df.iloc[0]
 
         st.subheader(f"📌 {selected_region} 當前氣象指標")
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4) # 🌟 改成 4 欄，把降雨機率放進去
         with col1:
             st.metric("🌤️ 天氣狀況", str(current_data.get('weather', '未知')))
         with col2:
-            st.metric("🔥 實際溫度", f"{current_data.get('maxT')} °C")
+            st.metric("💧 降雨機率", f"{current_data.get('pop', 0)} %")
         with col3:
+            st.metric("🔥 實際溫度", f"{current_data.get('maxT')} °C")
+        with col4:
             st.metric("❄️ 體感溫度", f"{current_data.get('minT')} °C")
         
         st.markdown("---")
+        
+        # 🌟 新增：如果使用者勾選了顯示降雨機率，就畫出這張漸層長條圖！
+        if show_pop and 'pop' in filtered_df.columns:
+            st.subheader(f"💧 {selected_region} 降雨機率預測圖 (每3小時)")
+            pop_chart_data = filtered_df[['dataDate', 'pop']].copy()
+            pop_chart_data['dataDate'] = pd.to_datetime(pop_chart_data['dataDate']).dt.strftime('%m/%d %H:%M')
+            
+            pop_chart = alt.Chart(pop_chart_data).mark_bar(color='#4fc3f7', opacity=0.8).encode(
+                x=alt.X('dataDate:N', title='日期與時間', axis=alt.Axis(labelAngle=-45)),
+                y=alt.Y('pop:Q', title='降雨機率 (%)', scale=alt.Scale(domain=[0, 100])),
+                tooltip=[alt.Tooltip('dataDate', title='時間'), alt.Tooltip('pop', title='降雨機率(%)')]
+            ).properties(height=250)
+            
+            st.altair_chart(pop_chart, use_container_width=True)
+            st.markdown("---")
 
-       # 這裡就是您最期待的 3 小時氣溫折線圖！
         st.subheader(f"📈 {selected_region} 未來氣溫趨勢圖 (每3小時)")
         chart_data = filtered_df[['dataDate', 'maxT', 'minT']].copy()
-        
-        # 🌟 關鍵美化 1：把落落長的時間轉換成易讀的格式 (例如 09/29 12:00)
         chart_data['dataDate'] = pd.to_datetime(chart_data['dataDate']).dt.strftime('%m/%d %H:%M')
         
         chart_data = chart_data.rename(columns={'maxT': '實際溫度', 'minT': '體感溫度', 'dataDate': '日期與時間'})
@@ -115,6 +125,13 @@ else:
         
         st.altair_chart(line_chart, use_container_width=True)
         st.markdown("---")
+        
+        st.subheader(f"📋 {selected_region} 詳細資料表格")
+        display_df = filtered_df[['regionName', 'dataDate', 'pop', 'minT', 'maxT', 'weather']].copy()
+        display_df['dataDate'] = pd.to_datetime(display_df['dataDate']).dt.strftime('%m/%d %H:%M')
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+    # ... (下方保留原本的 Folium 地圖渲染程式碼)
 
     st.subheader("🗺️ 台灣全區互動式氣象地圖")
 
