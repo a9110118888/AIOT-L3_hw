@@ -158,23 +158,37 @@ else:
             folium.Marker(
                 location=coords,
                 popup=folium.Popup(popup_html, max_width=250),
-                tooltip=region_name, # 🌟 關鍵修改 2：Tooltip 只留縣市名稱，方便程式判讀點擊了誰
+                tooltip=region_name,
                 icon=folium.Icon(color=icon_color, icon="info-sign")
             ).add_to(m)
 
-    # 🌟 關鍵修改 3：接收地圖的回傳值 (last_object_clicked_tooltip)
+    # 🌟 關鍵修改 1：改為捕捉 'last_clicked' (經緯度座標)
     map_data = st_folium(
         m, 
         width=900, 
         height=500, 
-        returned_objects=["last_object_clicked_tooltip"], 
+        returned_objects=["last_clicked"], 
         key="map_widget"
     )
     
-    # 🌟 關鍵修改 4：判斷是否有點擊地圖圖標，若有則觸發網頁重新整理！
-    if map_data and map_data.get("last_object_clicked_tooltip"):
-        clicked_region = map_data["last_object_clicked_tooltip"]
-        # 如果點擊的地點跟目前選的不一樣，就更新記憶並立刻重新整理網頁
-        if clicked_region in unique_regions and clicked_region != st.session_state.selected_region:
-            st.session_state.selected_region = clicked_region
-            st.rerun() 
+    # 🌟 關鍵修改 2：透過點擊的經緯度，反查最近的縣市名稱
+    if map_data and map_data.get("last_clicked"):
+        clicked_lat = map_data["last_clicked"]["lat"]
+        clicked_lng = map_data["last_clicked"]["lng"]
+        
+        # 尋找距離點擊位置最近的縣市
+        closest_region = None
+        min_distance = float('inf')
+        
+        for region, coords in CITY_COORDS.items():
+            # 簡單計算兩點距離的平方
+            dist = (coords[0] - clicked_lat)**2 + (coords[1] - clicked_lng)**2
+            # 設定一個很小的誤差容忍值，確保真的點在圖釘附近
+            if dist < min_distance and dist < 0.05: 
+                min_distance = dist
+                closest_region = region
+                
+        # 如果有找到對應縣市，且跟現在選的不一樣，就切換並重整
+        if closest_region and closest_region != st.session_state.selected_region:
+            st.session_state.selected_region = closest_region
+            st.rerun()
