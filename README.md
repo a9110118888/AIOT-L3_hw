@@ -1,8 +1,7 @@
 # ⛅ 台灣天氣預報互動應用系統 (Taiwan Weather Forecast Dashboard)
 
-# ⛅ Taiwan Weather Dashboard (台灣即時氣象儀表板)
 
-[![Open in Streamlit]([https://static.streamlit.io/badges/streamlit_badge_black_white.svg](https://aiot-l3hw-kmjjgzqzpv8nfqdw2uyfgb.streamlit.app/))](請把您的網址貼在這裡)
+[![開啟網站]([https://static.streamlit.io/badges/streamlit_badge_black_white.svg](https://aiot-l3hw-kmjjgzqzpv8nfqdw2uyfgb.streamlit.app/))](請把您的網址貼在這裡)
 
 這是我在「個人即時氣象網站製作」專案中所開發的即時氣象儀表板。
 
