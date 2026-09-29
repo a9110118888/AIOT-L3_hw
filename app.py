@@ -152,17 +152,16 @@ else:
     # ... (下方保留原本的 Folium 地圖渲染程式碼)
     st.subheader("🗺️ 台灣全區互動式氣象地圖")
 
-    # 🌟 載入紫外線資料 (快取 1 小時)
     @st.cache_data(ttl=3600)
     def get_uvi():
         return fetch_uvi_data()
-
-    @st.cache_data(ttl=3600)
-    def get_aqi(): 
-        return fetch_aqi_data() # 🌟 新增：載入空汙資料
     
+    @st.cache_data(ttl=3600)
+    def get_aqi():
+        return fetch_aqi_data()
+
     uvi_dict = get_uvi()
-    aqi_dict = get_aqi() # 🌟 新增
+    aqi_dict = get_aqi()
 
     map_center = CITY_COORDS.get(selected_region, [23.7, 120.95])
     zoom_level = 10 if selected_region in CITY_COORDS else 7.5
@@ -170,7 +169,7 @@ else:
     m = folium.Map(location=map_center, zoom_start=zoom_level, tiles="OpenStreetMap")
     latest_df = df.drop_duplicates(subset=['regionName'], keep='first')
 
-  for _, row in latest_df.iterrows():
+    for _, row in latest_df.iterrows():
         region_name = str(row.get('regionName', '')).strip()
         weather = row.get('weather', '未知')
         min_t, max_t = row.get('minT', 'N/A'), row.get('maxT', 'N/A')
@@ -178,13 +177,12 @@ else:
         if region_name in CITY_COORDS:
             coords = CITY_COORDS[region_name]
             uvi_val = uvi_dict.get(region_name, "N/A")
-            aqi_val = aqi_dict.get(region_name, "N/A") # 🌟 取得 AQI
+            aqi_val = aqi_dict.get(region_name, "N/A")
             
-            # 彈出視窗同時顯示 UVI 跟 AQI
             popup_html = f"<b>{region_name}</b><br>天氣: {weather}<br>氣溫: {min_t}-{max_t}°C<br>☀️ UVI: {uvi_val}<br>😷 AQI: {aqi_val}"
             icon_color = "red" if region_name == st.session_state.current_region else "blue"
 
-            # 1. 畫出圖釘本身
+            # 1. 主圖釘
             folium.Marker(
                 location=coords,
                 popup=folium.Popup(popup_html, max_width=250),
@@ -192,7 +190,7 @@ else:
                 icon=folium.Icon(color=icon_color, icon="info-sign")
             ).add_to(m)
 
-            # 2. ☀️ 右側圓形徽章 (紫外線 UVI)
+            # 2. 紫外線 UVI 圓形徽章 (右側)
             if uvi_val != "N/A":
                 bg_color = "#2e7d32"
                 if uvi_val >= 11: bg_color = "#9c27b0"
@@ -206,17 +204,16 @@ else:
                 </div>"""
                 folium.Marker(location=coords, icon=folium.DivIcon(html=html_uvi)).add_to(m)
 
-            # 3. 😷 左側方形徽章 (空氣品質 AQI)
+            # 3. 空氣品質 AQI 方形徽章 (左側)
             if aqi_val != "N/A":
-                # AQI 顏色標準
-                aqi_bg = "#009866" # 良好 (綠)
-                if aqi_val > 300: aqi_bg = "#7E0023" # 危害 (褐)
-                elif aqi_val > 200: aqi_bg = "#660098" # 非常不良 (紫)
-                elif aqi_val > 150: aqi_bg = "#CC0033" # 所有族群不良 (紅)
-                elif aqi_val > 100: aqi_bg = "#FF9833" # 敏感族群不良 (橘)
-                elif aqi_val > 50: aqi_bg = "#FFFF00" # 普通 (黃)
+                aqi_bg = "#009866"
+                if aqi_val > 300: aqi_bg = "#7E0023"
+                elif aqi_val > 200: aqi_bg = "#660098"
+                elif aqi_val > 150: aqi_bg = "#CC0033"
+                elif aqi_val > 100: aqi_bg = "#FF9833"
+                elif aqi_val > 50: aqi_bg = "#FFFF00"
 
-                text_color = "black" if 50 < aqi_val <= 100 else "white" # 黃底配黑字才清楚
+                text_color = "black" if 50 < aqi_val <= 100 else "white"
 
                 html_aqi = f"""
                 <div style="background-color: {aqi_bg}; color: {text_color}; border-radius: 4px; width: 22px; height: 22px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 11px; border: 1px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); transform: translate(-22px, -12px);">
