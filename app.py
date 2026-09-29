@@ -80,13 +80,6 @@ else:
         key="selected_region"  # 綁定記憶！
     )
 
-    # 🌟 新增：進階資訊切換開關 (這段維持不變)
-    st.sidebar.markdown("---")
-    st.sidebar.header("🛠️ 進階資訊切換")
-    show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=True)
-    
-    # ... (下方擷取資料、畫折線圖、長條圖、表格的程式碼，通通維持不變！) ...
-
     # 🌟 新增：進階資訊切換開關
     st.sidebar.markdown("---")
     st.sidebar.header("🛠️ 更多資訊")
