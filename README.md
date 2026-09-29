@@ -1,4 +1,6 @@
 # ⛅ Taiwan Weather Dashboard (台灣即時氣象儀表板)
+<img width="1911" height="989" alt="image" src="https://github.com/user-attachments/assets/a486b1b9-3f99-4b0c-b938-3ea98c81acab" />
+
 
 [![開啟網站](https://aiot-l3hw-kmjjgzqzpv8nfqdw2uyfgb.streamlit.app/)](請把您的網址貼在這裡)
 
