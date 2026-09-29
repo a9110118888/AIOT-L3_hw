@@ -20,7 +20,7 @@ CITY_COORDS = {
     "連江縣": [26.1505, 119.9499]
 }
 
-st.set_page_config(page_title="Taiwan Weather Forecast Dashboard", page_icon="⛅", layout="wide")
+st.set_page_config(page_title="台灣天氣預報互動應用系統", page_icon="⛅", layout="wide")
 
 # 鎖定防翻譯與字體設定
 st.markdown("""
@@ -28,7 +28,7 @@ st.markdown("""
     <meta name="google" content="notranslate">
 """, unsafe_allow_html=True)
 
-st.title('Taiwan Weather Forecast Dashboard')
+st.title('台灣天氣預報互動應用系統')
 st.markdown("---")
 
 def safe_save_to_db(data_list):
