@@ -124,3 +124,30 @@ def fetch_uvi_data():
         print(f"UVI 取得失敗: {e}")
         
     return uvi_dict
+
+def fetch_aqi_data():
+    """跨部會串接：抓取環境部 AQI 空氣品質指標"""
+    # 這裡使用的是環境部提供的公用 API Key
+    url = "https://data.moenv.gov.tw/api/v2/aqx_p_432?api_key=e8dd42e6-9b8b-43f8-991e-b3dee723a52d&limit=1000&sort=ImportDate%20desc&format=JSON"
+    aqi_dict = {}
+    try:
+        res = requests.get(url, verify=False)
+        res.raise_for_status()
+        data = res.json()
+        
+        records = data.get('records', [])
+        for rec in records:
+            county = rec.get('county', '未知')
+            aqi_str = rec.get('aqi', '')
+            
+            if county != '未知' and aqi_str.isdigit():
+                county = county.replace('台', '臺') # 統一縣市寫法
+                current_aqi = int(aqi_str)
+                
+                # 為了安全起見，若同一縣市有多個測站，我們取「最高」的空汙數值來做警示
+                if county not in aqi_dict or current_aqi > aqi_dict[county]:
+                    aqi_dict[county] = current_aqi
+    except Exception as e:
+        print(f"AQI 取得失敗: {e}")
+        
+    return aqi_dict
