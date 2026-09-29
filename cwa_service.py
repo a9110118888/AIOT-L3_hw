@@ -1,139 +1,81 @@
 import requests
 import json
 import urllib3
-from typing import List, Dict, Any, Optional
 
-from db_manager import save_weather_data
-
-# 停用 SSL 警告 (部分 Windows 環境對 CWA 憑證跳出警告)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# ==========================================
-# 中央氣象署 (CWA) API 設定
-# ==========================================
-# 請在此處填入您向 CWA 開放資料平台申請到的授權碼 (API Key)
-API_KEY = "CWA-173529DD-AAEE-4B6B-89E0-1112D4AAD41F"
+# ⚠️ 貼上後，請務必把這裡換成您的真實 API Key！
+API_KEY = "CWA-BB7B3F46-4892-4D32-9E5B-EC9D28B0D42F" 
+CWA_API_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-D0047-089"
 
-# CWA 一般天氣預報資料集 URL (F-C0032-001: 縣市預報)
-CWA_API_URL = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001"
-
-
-def fetch_weather_data(api_key: str = API_KEY, url: str = CWA_API_URL) -> Optional[dict]:
-    """
-    發送 HTTP GET 請求向中央氣象署 API 取得預報 JSON 資料
-
-    :param api_key: CWA 開放資料平台授權碼
-    :param url: CWA API 請求網址
-    :return: 成功回傳字典格式 (dict) 之 JSON 資料；失敗則回傳 None
-    """
-    headers = {
-        "Authorization": api_key
-    }
-    
-    params = {
-        "Authorization": api_key,
-        "format": "JSON"
-    }
-
-    print(f"[INFO] 正在向 {url} 發送 API 請求...")
-
+def fetch_weather_data():
+    url = f"{CWA_API_URL}?Authorization={API_KEY}&format=JSON"
     try:
-        response = requests.get(url, headers=headers, params=params, verify=False, timeout=10)
-
-        if response.status_code == 200:
-            print("[SUCCESS] 成功存取中央氣象署 API！")
-            return response.json()
-        else:
-            print(f"[ERROR] 請求失敗，HTTP 狀態碼: {response.status_code}")
-            print(f"[ERROR] 錯誤回應內容: {response.text}")
-            return None
-
-    except requests.exceptions.RequestException as e:
-        print(f"[ERROR] 發送請求時發生異常錯誤: {e}")
+        response = requests.get(url, verify=False)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        print(f"API 請求失敗: {e}")
         return None
 
-
-def parse_weather_data(json_data: Optional[dict]) -> List[Dict[str, Any]]:
-    """
-    解析 CWA API (F-C0032-001) 回傳的 JSON 結構，提取關鍵天氣資訊
-    
-    轉換為 List[Dict] 結構，範例:
-    [
-        {"regionName": "臺北市", "dataDate": "2026-09-23 18:00:00", "minT": 25, "maxT": 30, "weather": "多雲短暫陣雨"},
-        ...
-    ]
-
-    :param json_data: fetch_weather_data 回傳之原生 JSON 字典
-    :return: 解析後的 List[Dict] 天氣資料清單
-    """
-    parsed_list: List[Dict[str, Any]] = []
-
-    if not json_data or "records" not in json_data or "location" not in json_data["records"]:
-        print("[WARNING] JSON 資料格式無效或未包含 location 紀錄。")
-        return parsed_list
-
-    location_list = json_data["records"]["location"]
-
-    for loc in location_list:
-        location_name = loc.get("locationName", "未知地點")
-        min_t = None
-        max_t = None
-        weather = None
-        data_date = None
-
-        weather_elements = loc.get("weatherElement", [])
-        for elem in weather_elements:
-            elem_name = elem.get("elementName")
-            time_slots = elem.get("time", [])
-
-            if time_slots:
-                first_slot = time_slots[0]
+def parse_weather_data(json_data):
+    parsed_data = []
+    try:
+        locations = json_data.get('records', {}).get('Locations', [{}])[0].get('Location', [])
+        
+        for loc in locations:
+            region_name = loc.get('LocationName', loc.get('locationName', '未知'))
+            weather_elements = loc.get('WeatherElement', loc.get('weatherElement', []))
+            
+            elements = {}
+            for e in weather_elements:
+                ename = e.get('ElementName', e.get('elementName'))
+                if ename: elements[ename] = e
+            
+            # --- 關鍵修正：改用中文尋找氣象元素！ ---
+            t_elem = elements.get('溫度', {})
+            at_elem = elements.get('體感溫度', {})
+            wx_elem = elements.get('天氣現象', {})
+            # ----------------------------------------
+            
+            t_times = t_elem.get('Time', t_elem.get('time', []))
+            at_times = at_elem.get('Time', at_elem.get('time', []))
+            wx_times = wx_elem.get('Time', wx_elem.get('time', []))
+            
+            if not t_times: continue
+            
+            # 這裡設定抓取未來 16 個時段 (共 48 小時)
+            num_records = min(16, len(t_times))
+            for i in range(num_records):
+                start_time = t_times[i].get('DataTime', t_times[i].get('StartTime', t_times[i].get('dataTime', t_times[i].get('startTime', ''))))
                 
-                if not data_date:
-                    data_date = first_slot.get("startTime")
-
-                param_name = first_slot.get("parameter", {}).get("parameterName")
-
-                if elem_name == "MinT":
-                    try:
-                        min_t = int(param_name)
-                    except (ValueError, TypeError):
-                        min_t = param_name
-                elif elem_name == "MaxT":
-                    try:
-                        max_t = int(param_name)
-                    except (ValueError, TypeError):
-                        max_t = param_name
-                elif elem_name == "Wx":
-                    weather = param_name
-
-        item = {
-            "regionName": location_name,
-            "dataDate": data_date,
-            "minT": min_t,
-            "maxT": max_t,
-            "weather": weather
-        }
-        parsed_list.append(item)
-
-    return parsed_list
-
-
-# 測試執行區塊
-if __name__ == "__main__":
-    print("=== 開始測試 CWA API 請求與資料解析並寫入 SQLite ===")
-    
-    # 1. 發送 GET 請求取得原生 JSON
-    raw_json = fetch_weather_data()
-    
-    if raw_json:
-        # 2. 解析 JSON 資料結構
-        parsed_data = parse_weather_data(raw_json)
-        print(f"\n[SUCCESS] 成功解析 {len(parsed_data)} 個縣市的天氣預報資料！\n")
+                try:
+                    t_val_arr = t_times[i].get('ElementValue', t_times[i].get('elementValue', [{}]))
+                    t_val = float(t_val_arr[0].get('Temperature', t_val_arr[0].get('value', t_val_arr[0].get('溫度', 0))))
+                except: t_val = 0.0
+                
+                try:
+                    if at_times:
+                        at_val_arr = at_times[i].get('ElementValue', at_times[i].get('elementValue', [{}]))
+                        at_val = float(at_val_arr[0].get('ApparentTemperature', at_val_arr[0].get('value', at_val_arr[0].get('體感溫度', t_val))))
+                    else: at_val = t_val
+                except: at_val = t_val
+                
+                try:
+                    if wx_times:
+                        wx_val_arr = wx_times[i].get('ElementValue', wx_times[i].get('elementValue', [{}]))
+                        wx_val = wx_val_arr[0].get('Weather', wx_val_arr[0].get('value', wx_val_arr[0].get('天氣現象', '未知')))
+                    else: wx_val = "未知"
+                except: wx_val = "未知"
+                
+                parsed_data.append({
+                    "regionName": region_name,
+                    "dataDate": start_time,
+                    "maxT": t_val,
+                    "minT": at_val,
+                    "weather": str(wx_val)
+                })
+    except Exception as e:
+        print(f"解析 JSON 發生錯誤: {e}")
         
-        # 3. 寫入 SQLite 資料庫 (data.db)
-        save_weather_data(parsed_data)
-        
-        print("\n資料已成功儲存至 SQLite 資料庫")
-    else:
-        print("\n[NOTE] 無法取得資料，請檢查 API Key 是否正確。")
+    return parsed_data
