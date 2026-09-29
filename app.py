@@ -238,9 +238,7 @@ else:
         
         with st.container(border=True):
             st.markdown("#### 🖱️ 互動功能")
-            st.markdown("• **點擊圖釘**：直接切換上方檢視的縣市。")
-            st.markdown("• **紅色圖釘**：目前選取中的地區。")
-            st.markdown("• **藍色圖釘**：其他可切換的地區。")
+            st.markdown("• **點擊地圖**：切換到最近的城市。")
 
         with st.container(border=True):
             st.markdown("#### ☀️ 紫外線 (UVI) 指標")
