@@ -187,19 +187,17 @@ else:
         clicked_lat = map_data["last_clicked"]["lat"]
         clicked_lng = map_data["last_clicked"]["lng"]
         
-        # 尋找距離點擊位置最近的縣市
+       # 尋找距離點擊位置最近的縣市
         closest_region = None
         min_distance = float('inf')
         
         for region, coords in CITY_COORDS.items():
-            # 簡單計算兩點距離的平方
             dist = (coords[0] - clicked_lat)**2 + (coords[1] - clicked_lng)**2
-            # 設定一個很小的誤差容忍值，確保真的點在圖釘附近
             if dist < min_distance and dist < 0.05: 
                 min_distance = dist
                 closest_region = region
                 
-        # 如果有找到對應縣市，且跟現在選的不一樣，就切換並重整
-        if closest_region and closest_region != st.session_state.selected_region:
-            st.session_state.selected_region = closest_region
-            st.rerun()
+        # 🌟 修正 4：這裡也要改為更新 'current_region' 獨立記憶
+        if closest_region and closest_region != st.session_state.current_region:
+            st.session_state.current_region = closest_region
+            st.rerun() 
