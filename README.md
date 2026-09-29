@@ -1,143 +1,38 @@
-# ⛅ 台灣天氣預報互動應用系統 (Taiwan Weather Forecast Dashboard)
+# ⛅ Taiwan Weather Dashboard (台灣即時氣象儀表板)
 
+[![開啟網站](https://aiot-l3hw-kmjjgzqzpv8nfqdw2uyfgb.streamlit.app/)](請把您的網址貼在這裡)
 
-[![開啟網站]([https://static.streamlit.io/badges/streamlit_badge_black_white.svg](https://aiot-l3hw-kmjjgzqzpv8nfqdw2uyfgb.streamlit.app/))](請把您的網址貼在這裡)
-
-這是我在「個人即時氣象網站製作」專案中所開發的即時氣象儀表板。
-
-## 🌟 專案亮點
-* **即時更新**：介接中央氣象署 (CWA) F-D0047-089 API，自動抓取全台 22 縣市最新氣象資料。
-* **智慧快取**：結合 SQLite 與 Streamlit `@st.cache_data` (3小時 TTL)，網頁載入極速且不浪費 API 資源。
-* **資料視覺化**：使用 Altair 繪製 3 小時區間的實際溫度與體感溫度折線圖。
-* **互動地圖**：整合 Folium 互動式地圖，直觀顯示全台氣象概況。
-
-> **AI 創新微課程專案** | **CWA API × JSON × Python × SQLite × Streamlit × Folium**  
-> *Code Smarter, Build a Better Tomorrow! 用程式探索天氣，用資料看見台灣，用 AI 實現更多可能！*
-
-![Taiwan Weather Forecast Banner](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.30%2B-FF4B4B?style=for-the-badge&logo=streamlit)
-![SQLite](https://img.shields.io/badge/SQLite-3.0-003B57?style=for-the-badge&logo=sqlite)
-![CWA API](https://img.shields.io/badge/Data-CWA_Open_Data-green?style=for-the-badge)
-![Git](https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge&logo=github)
+這是一個基於 Python 與 Streamlit 開發的全端即時氣象與環境監測儀表板，串接了中央氣象署 (CWA) 與環境部 (MOENV) 的開放資料，提供全台 22 縣市最精細的氣象與空氣品質資訊。
 
 ---
 
-## 📌 專案簡介 (Project Overview)
+## 🌟 核心功能與專案亮點
 
-本專案旨在運用 **Python** 結合中央氣象署（CWA）Open Data API 串接台灣各地區一週天氣預報資料，經過 **JSON 資料解析與整理（ETL）**後儲存至 **SQLite 資料庫**，並透過 **Streamlit Web 介面** 與 **Folium 地圖** 打造高互動性的台灣氣象動態儀表板（Taiwan Weather Dashboard）。
-
-本專案採用 **Vibe Coding (AI-Assisted Development)** 流程開發，整合 **Antigravity IDE × Gemini 2.0 × GitHub** 實現高速迭代與版本控制。
-
----
-
-## 🔥 核心功能特色 (Features)
-
-1. **🌐 CWA API 自動串接與 JSON 解析**
-   - 自動發送 HTTP API 請求取得中央氣象署最新預報。
-   - 解析結構化 JSON 內容，提取 `MinT`（最低氣溫）與 `MaxT`（最高氣溫）關鍵資料。
-
-2. **💾 結構化 SQLite 資料庫管理 (`data.db`)**
-   - 自動建立 `TemperatureForecasts` 資料表。
-   - 提供高效 SQL 查詢機制與資料重複性驗證，保持資料清潔。
-
-3. **📊 互動式氣象儀表板 (Streamlit Web App)**
-   - **地區下拉選單**：支援「北部地區、中部地區、南部地區、東部地區、東北部地區、東南部地區」快速切換。
-   - **一週氣溫折線圖**：即時繪製最高溫與最低溫變化趨勢。
-   - **數據表格展示**：清晰呈現日期與氣溫分佈。
-
-4. **🗺️ 台灣地圖空間視覺化 (Folium + Streamlit)**
-   - **互動式地圖**：提供全台氣溫地圖與各分區氣溫標籤。
-   - **日期篩選器**：選擇特定日期，動態呈現該日全台氣溫變化。
-
-5. **🤖 AI 賦能與靈活擴充 (Vibe Coding)**
-   - 代碼結構清晰、優良模組化設計（含異常處理機制與詳細註解）。
-   - 易於延伸至 Line Bot 天氣提醒、旅遊行程建議、智慧農業與防災應對。
+* **⏱️ 每 3 小時精細預報**：介接中央氣象署 `F-D0047-089` 鄉鎮預報 API，提供未來 48 小時內每 3 小時的高解析度氣象趨勢。
+* **📈 動態資料視覺化**：
+  * **實際溫度與體感溫度折線圖**：採用 Altair 繪製，讓溫差變化一目了然。
+  * **降雨機率 (PoP) 長條圖**：直觀呈現未來各時段的降雨機率。
+* **🗺️ 互動式全台環境地圖**：
+  * **點擊即時切換**：整合 Folium 互動地圖，點擊地圖上的圖釘或附近區域，上方所有數據、圖表與選單會瞬間同步切換至該縣市。
+  * **雙色環境徽章**：地圖圖釘旁直接附帶 **圓形紫外線 (UVI)** 與 **方形空氣品質 (AQI)** 顏色分級徽章，全台環境數據一眼掌握。
+* **💡 智慧快取與架構**：使用 SQLite 快取資料（TTL 機制），避免頻繁請求 API；結合跨部會資料整合（CWA + 環境部），打造商業級的即時監測介面。
 
 ---
 
-## 🏗️ 專案架構 (Project Structure)
+## 🛠️ 技術棧 (Tech Stack)
 
-```text
-├── .gitignore               # Git 忽略檔案設定
-├── README.md                # 專案說明文件
-├── requirements.txt         # 套件依賴清單
-├── cwa_service.py           # CWA API 抓取與 JSON 解析模組
-├── db_manager.py            # SQLite 資料庫讀寫模組
-├── app.py                   # Streamlit 主程式 (含介面與 Folium 地圖)
-└── data.db                  # SQLite 本地資料庫 (自動產生)
-```
-
----
-
-## 📊 資料庫設計 (Database Schema)
-
-資料庫名稱：`data.db`  
-資料表名稱：`TemperatureForecasts`
-
-| 欄位名稱 (Field) | 資料型態 (Type) | 說明 (Description) |
-| :--- | :--- | :--- |
-| `id` | `INTEGER PRIMARY KEY AUTOINCREMENT` | 主鍵 / 紀錄編號 |
-| `regionName` | `TEXT` | 地區名稱 (如: 北部地區、中部地區) |
-| `dataDate` | `TEXT` | 預報日期 (Format: YYYY-MM-DD) |
-| `mint` | `REAL` | 當日預測最低氣溫 (°C) |
-| `maxt` | `REAL` | 當日預測最高氣溫 (°C) |
+* **前端介面**：Streamlit, Streamlit-Folium
+* **資料視覺化**：Altair, Folium
+* **資料處理**：Pandas, SQLite
+* **資料來源**：
+  * 中央氣象署 (CWA) 3 小時鄉鎮預報 API (`F-D0047-089`)
+  * 中央氣象署即時觀測 API (`O-A0003-001`)
+  * 環境部空氣品質指標 API (`MOENV AQI`)
+* **部署平台**：Streamlit Community Cloud
 
 ---
 
-## 🚀 快速上手指南 (Quick Start)
+## 📸 畫面預覽與使用說明
 
-### 1. 複製儲存庫 (Clone Repository)
-```bash
-git clone https://github.com/a9110118888/AIOT-L3_hw.git
-cd AIOT-L3_hw
-```
-
-### 2. 安裝必要套件 (Install Dependencies)
-建議建立 Python 虛擬環境 (`venv`) 後執行：
-```bash
-pip install -r requirements.txt
-```
-
-### 3. 設定 CWA API Key (Set API Key)
-前往 [中央氣象署開放資料平臺](https://opendata.cwa.gov.tw/) 註冊並取得 Authorization API Key。  
-在專案目錄下設定環境變數或於 `cwa_service.py` 中填入你的 API Key。
-
-### 4. 啟動 Streamlit 應用程式 (Run Web App)
-```bash
-streamlit run app.py
-```
-執行後請打開瀏覽器造訪：`http://localhost:8501`
-
----
-
-## 🗺️ 學習學習地圖 (24-Step Roadmap)
-
-```mermaid
-flowchart TD
-    A[1. 課程介紹 & 環境設定] --> B[2. 申請 CWA API Key]
-    B --> C[3. API 資料取得 Requests & JSON]
-    C --> D[4. 提取 MinT / MaxT 氣溫數據]
-    D --> E[5. Pandas 資料整理與 SQLite 寫入]
-    E --> F[6. Streamlit 介面與下拉選單設計]
-    F --> G[7. 繪製氣溫折線圖與表格]
-    G --> H[8. Folium 地圖整合與日期篩選]
-    H --> I[9. 程式碼優化與 Git/GitHub 部署]
-```
-
----
-
-## 💡 未來延伸應用 (Future Roadmap)
-
-- [ ] **Line Bot 智慧通知**：每日自動定時推播氣溫特報與降雨提醒。
-- [ ] **智慧農業 / 防災應用**：根據低溫與暴雨特報啟動自動化防災建議。
-- [ ] **AI 預測分析**：結合 LLM (Gemini / OpenAI) 產生個人化穿搭與旅遊規劃建議。
-
----
-
-## 👨‍💻 貢獻者與導師 (Credits & Acknowledgments)
-
-- **指導導師**：煥哥 (Huan Ge)
-- **開發工具**：Antigravity IDE × Gemini AI Agent
-- **資料來源**：[中央氣象署 Open Data 平台](https://opendata.cwa.gov.tw/)
-
-> *技術可以解決問題，但更重要的是：用技術創造更好的未來！ — 煥哥*
+1. **左側選單**：可手動下拉切換觀看地區。
+2. **互動地圖與右側面板**：地圖右側備有詳細的圖例說明與互動教學，方便快速對照 UVI 紫外線與 AQI 空汙分級標準。
