@@ -67,9 +67,25 @@ df = load_weather_data()
 if df.empty:
     st.warning("⚠️ 目前資料庫無資料，請確認 API Key 是否設定正確。")
 else:
-    st.sidebar.header("📍 選擇地區")
     unique_regions = sorted(df['regionName'].drop_duplicates().tolist())
-    selected_region = st.sidebar.selectbox("請選擇要觀看的地區:", options=unique_regions)
+    
+    # 🌟 關鍵修改 1：初始化記憶，並將下拉選單綁定 key="selected_region"
+    if 'selected_region' not in st.session_state:
+        st.session_state.selected_region = unique_regions[0]
+        
+    st.sidebar.header("📍 選擇地區")
+    selected_region = st.sidebar.selectbox(
+        "請選擇要觀看的地區:", 
+        options=unique_regions, 
+        key="selected_region"  # 綁定記憶！
+    )
+
+    # 🌟 新增：進階資訊切換開關 (這段維持不變)
+    st.sidebar.markdown("---")
+    st.sidebar.header("🛠️ 進階資訊切換")
+    show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=True)
+    
+    # ... (下方擷取資料、畫折線圖、長條圖、表格的程式碼，通通維持不變！) ...
 
     # 🌟 新增：進階資訊切換開關
     st.sidebar.markdown("---")
@@ -129,6 +145,7 @@ else:
 
     # ... (下方保留原本的 Folium 地圖渲染程式碼)
 
+   st.markdown("---")
     st.subheader("🗺️ 台灣全區互動式氣象地圖")
 
     map_center = CITY_COORDS.get(selected_region, [23.7, 120.95])
@@ -150,8 +167,23 @@ else:
             folium.Marker(
                 location=coords,
                 popup=folium.Popup(popup_html, max_width=250),
-                tooltip=f"{region_name}: {weather}",
+                tooltip=region_name, # 🌟 關鍵修改 2：Tooltip 只留縣市名稱，方便程式判讀點擊了誰
                 icon=folium.Icon(color=icon_color, icon="info-sign")
             ).add_to(m)
 
-    st_folium(m, width=900, height=500, returned_objects=[], key=f"map_{selected_region}")
+    # 🌟 關鍵修改 3：接收地圖的回傳值 (last_object_clicked_tooltip)
+    map_data = st_folium(
+        m, 
+        width=900, 
+        height=500, 
+        returned_objects=["last_object_clicked_tooltip"], 
+        key="map_widget"
+    )
+    
+    # 🌟 關鍵修改 4：判斷是否有點擊地圖圖標，若有則觸發網頁重新整理！
+    if map_data and map_data.get("last_object_clicked_tooltip"):
+        clicked_region = map_data["last_object_clicked_tooltip"]
+        # 如果點擊的地點跟目前選的不一樣，就更新記憶並立刻重新整理網頁
+        if clicked_region in unique_regions and clicked_region != st.session_state.selected_region:
+            st.session_state.selected_region = clicked_region
+            st.rerun() 
