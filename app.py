@@ -73,7 +73,7 @@ else:
 
     # 🌟 新增：進階資訊切換開關
     st.sidebar.markdown("---")
-    st.sidebar.header("🛠️ 進階資訊切換")
+    st.sidebar.header("🛠️ 更多資訊")
     show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=True) # 預設開啟
 
     filtered_df = df[df['regionName'] == selected_region].reset_index(drop=True)
