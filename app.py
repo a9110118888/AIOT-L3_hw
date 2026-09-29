@@ -71,6 +71,15 @@ else:
     unique_regions = sorted(df['regionName'].drop_duplicates().tolist())
     selected_region = st.sidebar.selectbox("請選擇要觀看的地區:", options=unique_regions)
 
+    # 👇 請在這裡新增以下這段「進階功能選單」：
+    st.sidebar.markdown("---")
+    st.sidebar.header("🛠️ 進階資訊切換")
+    
+    # 建立三個勾選框
+    show_pop = st.sidebar.checkbox("💧 顯示降雨機率", value=False)
+    show_uvi = st.sidebar.checkbox("☀️ 顯示紫外線 (UVI)", value=False)
+    show_aqi = st.sidebar.checkbox("😷 顯示空汙警報 (AQI)", value=False)
+
     filtered_df = df[df['regionName'] == selected_region].reset_index(drop=True)
 
     if not filtered_df.empty:
