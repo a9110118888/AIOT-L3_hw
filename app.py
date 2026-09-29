@@ -144,8 +144,6 @@ else:
 
 
     # ... (下方保留原本的 Folium 地圖渲染程式碼)
-
-   st.markdown("---")
     st.subheader("🗺️ 台灣全區互動式氣象地圖")
 
     map_center = CITY_COORDS.get(selected_region, [23.7, 120.95])
