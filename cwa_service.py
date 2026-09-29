@@ -92,7 +92,7 @@ def parse_weather_data(json_data):
 # --- 在 cwa_service.py 最下方新增這段 ---
 
 def fetch_uvi_data():
-    """抓取 O-A0005-001 紫外線觀測資料"""
+    """抓取 O-A0005-001 紫外線觀測資料 (增強解析版)"""
     url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0005-001?Authorization={API_KEY}&format=JSON"
     uvi_dict = {}
     try:
@@ -100,23 +100,39 @@ def fetch_uvi_data():
         res.raise_for_status()
         data = res.json()
         
-        # 解析紫外線觀測資料結構
+        # 兼容不同結構的 API 回傳格式
         locations = data.get('records', {}).get('weatherElement', {}).get('location', [])
+        if not locations:
+            locations = data.get('records', {}).get('location', [])
+
         for loc in locations:
-            uvi_val = loc.get('value', 0)
+            # 兼容數值欄位名稱
+            uvi_val = loc.get('uvIndex', loc.get('value', 0))
+            
             county = "未知"
+            # 嘗試從 parameter 中尋找縣市名稱
             for p in loc.get('parameter', []):
-                if p.get('parameterName') == 'COUNTYNAME':
-                    county = p.get('parameterValue')
+                p_name = p.get('name', p.get('parameterName', ''))
+                if p_name in ['CITY', 'COUNTYNAME', 'CITY_SN']:
+                    county = p.get('value', p.get('parameterValue', '未知'))
                     break
             
-            # 若同一縣市有多個測站，保留最高數值
+            # 若找不到 CITY 欄位，直接用測站名稱推測
+            if county == "未知":
+                county = loc.get('locationName', '未知')
+
             if county != "未知":
-                county = county.replace('台', '臺') # 統一寫法
+                # 自動補齊「市」或「縣」
+                if len(county) == 2 and county in ["臺北", "新北", "桃園", "臺中", "臺南", "高雄", "基隆", "新竹", "嘉義"]:
+                    county += "市"
+                elif len(county) == 2:
+                    county += "縣"
+                    
+                county = county.replace('台', '臺')
                 try:
                     current_val = float(uvi_val)
                     if county not in uvi_dict or current_val > uvi_dict[county]:
-                        uvi_dict[county] = current_val
+                        uvi_dict[county] = current_val # 保留該縣市最高數值
                 except:
                     pass
     except Exception as e:
